@@ -609,6 +609,17 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(fd);
 }
 
+ssize_t safe_read(int fd, void *buf, size_t count)
+{
+	ssize_t n;
+
+	do {
+		n = read(fd, buf, count);
+	} while (n < 0 && errno == EINTR);
+
+	return n;
+}
+
 mrb_value
 mrb_io_sysread(mrb_state *mrb, mrb_value io)
 {
@@ -630,7 +641,7 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
   }
 
   fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
-  ret = read(fptr->fd, RSTRING_PTR(buf), maxlen);
+  ret = safe_read(fptr->fd, RSTRING_PTR(buf), maxlen);
   switch (ret) {
     case 0: /* EOF */
       if (maxlen == 0) {
